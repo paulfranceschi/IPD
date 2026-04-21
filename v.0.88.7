@@ -1,0 +1,1491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iterated Prisoner's Dilemma Simulation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        .gradient-bg {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .card-shadow {
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+        }
+        .strategy-card {
+            transition: all 0.3s ease;
+        }
+        .strategy-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        .strategy-card.selected {
+            border-color: #667eea;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+        }
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+        .result-bar {
+            transition: all 0.5s ease;
+        }
+        .strategy-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            padding: 4px;
+        }
+        .strategy-grid::-webkit-scrollbar {
+            width: 6px;
+        }
+        .strategy-grid::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        .strategy-grid::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+        .tournament-row:hover {
+            background-color: #f3f4f6;
+        }
+        .tournament-row.winner {
+            background: linear-gradient(135deg, rgba(255, 215, 0, 0.3) 0%, rgba(255, 193, 7, 0.1) 100%);
+        }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <div class="gradient-bg py-8">
+        <div class="container mx-auto px-4">
+            <div class="text-center text-white">
+                <h1 class="text-4xl font-bold mb-2">Iterated Prisoner's Dilemma</h1>
+                <p class="text-lg opacity-90">Game Theory Simulation</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container mx-auto px-4 py-8">
+        <!-- Game Image -->
+        <div class="mb-8 flex justify-center">
+            <img src="https://image.qwenlm.ai/public_source/67c273f5-0f5a-457a-8520-366a3122d5ee/178f2ed61-69dc-4306-8c8a-acf9041e7b5f.png" 
+                 alt="Prisoner's Dilemma Logo" 
+                 class="max-w-md rounded-lg shadow-lg bg-white p-4">
+        </div>
+
+        <!-- Payoff Matrix -->
+        <div class="bg-white rounded-xl card-shadow p-6 mb-8">
+            <h2 class="text-2xl font-bold text-gray-800 mb-4">Payoff Matrix</h2>
+            <div class="overflow-x-auto">
+                <table class="w-full max-w-lg mx-auto border-collapse">
+                    <thead>
+                        <tr>
+                            <th class="p-3"></th>
+                            <th class="p-3 bg-blue-100 text-blue-800 font-semibold">Player 2 Cooperates</th>
+                            <th class="p-3 bg-red-100 text-red-800 font-semibold">Player 2 Defects</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td class="p-3 bg-blue-100 text-blue-800 font-semibold">Player 1 Cooperates</td>
+                            <td class="p-3 text-center bg-green-50">
+                                <span class="font-bold text-green-700">3, 3</span>
+                                <p class="text-xs text-gray-500">Reward (R)</p>
+                            </td>
+                            <td class="p-3 text-center bg-yellow-50">
+                                <span class="font-bold text-yellow-700">0, 5</span>
+                                <p class="text-xs text-gray-500">Sucker (S)</p>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td class="p-3 bg-red-100 text-red-800 font-semibold">Player 1 Defects</td>
+                            <td class="p-3 text-center bg-yellow-50">
+                                <span class="font-bold text-yellow-700">5, 0</span>
+                                <p class="text-xs text-gray-500">Temptation (T)</p>
+                            </td>
+                            <td class="p-3 text-center bg-orange-50">
+                                <span class="font-bold text-orange-700">1, 1</span>
+                                <p class="text-xs text-gray-500">Punishment (P)</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Configuration -->
+        <div class="grid md:grid-cols-2 gap-8 mb-8">
+            <!-- Player 1 -->
+            <div class="bg-white rounded-xl card-shadow p-6">
+                <h3 class="text-xl font-bold text-blue-600 mb-4 flex items-center">
+                    <span class="w-8 h-8 bg-blue-500 text-white rounded-full flex items-center justify-center mr-2">1</span>
+                    Player 1 Strategy
+                </h3>
+                <div class="strategy-grid" id="player1-strategies">
+                    <!-- Strategies will be populated by JS -->
+                </div>
+            </div>
+
+            <!-- Player 2 -->
+            <div class="bg-white rounded-xl card-shadow p-6">
+                <h3 class="text-xl font-bold text-red-600 mb-4 flex items-center">
+                    <span class="w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center mr-2">2</span>
+                    Player 2 Strategy
+                </h3>
+                <div class="strategy-grid" id="player2-strategies">
+                    <!-- Strategies will be populated by JS -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Iteration Settings -->
+        <div class="bg-white rounded-xl card-shadow p-6 mb-8">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Simulation Settings</h3>
+            <div class="flex flex-wrap items-center gap-6">
+                <div class="flex-1 min-w-64">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Number of Iterations: <span id="iteration-value" class="font-bold text-purple-600">200</span>
+                    </label>
+                    <input type="range" id="iterations" min="10" max="1000" value="200" step="10"
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600">
+                </div>
+                <div class="flex-1 min-w-64">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Iteration Deviation: <span id="deviation-value" class="font-bold text-purple-600">5%</span>
+                    </label>
+                    <input type="range" id="deviation" min="0" max="50" value="5" step="1"
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600">
+                    <p class="text-xs text-gray-500 mt-1">Random variation in iterations per simulation (±%)</p>
+                </div>
+                <div class="flex-1 min-w-64">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Trials: <span id="trials-value" class="font-bold text-purple-600">5</span>
+                    </label>
+                    <input type="range" id="trials" min="1" max="100" value="5" step="1"
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600">
+                    <p class="text-xs text-gray-500 mt-1">Number of tournaments to run and average</p>
+                </div>
+                <div class="flex-1 min-w-64">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Generous Tit-For-Tat Forgiveness: <span id="generous-value" class="font-bold text-purple-600">33%</span>
+                    </label>
+                    <input type="range" id="generous" min="0" max="100" value="33" step="1"
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600">
+                </div>
+                <div class="flex-1 min-w-64">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Random with Probability (Cooperate): <span id="random-prob-value" class="font-bold text-purple-600">33%</span>
+                    </label>
+                    <input type="range" id="random-prob" min="0" max="100" value="33" step="1"
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600">
+                </div>
+                <div class="flex-1 min-w-64">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Imperfect TFT Probability: <span id="imperfect-tft-value" class="font-bold text-purple-600">90%</span>
+                    </label>
+                    <input type="range" id="imperfect-tft" min="50" max="100" value="90" step="1"
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600">
+                    <p class="text-xs text-gray-500 mt-1">Probability of copying opponent's last move</p>
+                </div>
+                <div class="flex-1 min-w-64">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Reactive Strategy - p (after C): <span id="reactive-p-value" class="font-bold text-purple-600">90%</span>
+                    </label>
+                    <input type="range" id="reactive-p" min="0" max="100" value="90" step="1"
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600">
+                    <p class="text-xs text-gray-500 mt-1">Probability of cooperating after opponent cooperates</p>
+                </div>
+                <div class="flex-1 min-w-64">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Reactive Strategy - q (after D): <span id="reactive-q-value" class="font-bold text-purple-600">10%</span>
+                    </label>
+                    <input type="range" id="reactive-q" min="0" max="100" value="10" step="1"
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600">
+                    <p class="text-xs text-gray-500 mt-1">Probability of cooperating after opponent defects</p>
+                </div>
+                <div class="flex-1 min-w-64">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Noise Probability: <span id="noise-value" class="font-bold text-purple-600">0.3%</span>
+                    </label>
+                    <input type="range" id="noise" min="0" max="20" value="0.3" step="0.1"
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600">
+                    <p class="text-xs text-gray-500 mt-1">Chance of move being flipped (error/miscommunication)</p>
+                </div>
+                <div class="flex-1 min-w-64">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Gradual TFT Apologies: <span id="gradual-apologies-value" class="font-bold text-purple-600">2</span>
+                    </label>
+                    <input type="range" id="gradual-apologies" min="0" max="10" value="2" step="1"
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600">
+                    <p class="text-xs text-gray-500 mt-1">Number of cooperation rounds after punishment (0 = no apologies)</p>
+                </div>
+                <div class="flex-1 min-w-64">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        Fully Gradual TFT Apologies Max: <span id="fully-gradual-apologies-max-value" class="font-bold text-purple-600">6</span>
+                    </label>
+                    <input type="range" id="fully-gradual-apologies-max" min="1" max="20" value="6" step="1"
+                           class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-purple-600">
+                    <p class="text-xs text-gray-500 mt-1">Max apologies; actual = max - defection_count (min 0)</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Control Buttons -->
+        <div class="flex flex-wrap gap-4 justify-center mb-8">
+            <button id="run-btn" class="bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-purple-600 hover:to-indigo-700 transition-all transform hover:scale-105 shadow-lg">
+                🎮 Run Simulation
+            </button>
+            <button id="tournament-btn" class="bg-gradient-to-r from-orange-500 to-amber-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-orange-600 hover:to-amber-700 transition-all transform hover:scale-105 shadow-lg">
+                🏆 Run Tournament
+            </button>
+            <button id="reset-btn" class="bg-gray-200 text-gray-700 px-8 py-3 rounded-lg font-semibold hover:bg-gray-300 transition-all">
+                🔄 Reset
+            </button>
+            <button id="about-btn" class="bg-gradient-to-r from-teal-500 to-cyan-600 text-white px-8 py-3 rounded-lg font-semibold hover:from-teal-600 hover:to-cyan-700 transition-all transform hover:scale-105 shadow-lg">
+                ℹ️ About
+            </button>
+        </div>
+
+        <!-- Progress -->
+        <div id="progress-container" class="bg-white rounded-xl card-shadow p-6 mb-8 hidden">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-medium text-gray-700" id="progress-label">Progress</span>
+                <span id="progress-text" class="text-sm font-medium text-gray-700">0 / 200</span>
+            </div>
+            <div class="w-full bg-gray-200 rounded-full h-4 mb-2">
+                <div id="progress-bar" class="progress-bar bg-gradient-to-r from-purple-500 to-indigo-600 h-4 rounded-full" style="width: 0%"></div>
+            </div>
+            <!-- Trial progress bar (only shown when trials > 1) -->
+            <div id="trial-progress-container" class="hidden">
+                <div class="flex justify-between items-center mb-1">
+                    <span class="text-xs text-gray-500">Trial Progress</span>
+                    <span id="trial-progress-text" class="text-xs text-gray-500">Trial 1 / 5</span>
+                </div>
+                <div class="w-full bg-gray-100 rounded-full h-3">
+                    <div id="trial-progress-bar" class="progress-bar bg-gradient-to-r from-orange-400 to-red-500 h-3 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results -->
+        <div id="results-container" class="bg-white rounded-xl card-shadow p-6 mb-8 hidden">
+            <h3 class="text-2xl font-bold text-gray-800 mb-6 text-center">Simulation Results</h3>
+            
+            <!-- Score Cards -->
+            <div class="grid md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-6 text-center">
+                    <h4 class="text-lg font-semibold text-blue-700 mb-2">Player 1 Total Score</h4>
+                    <p id="player1-score" class="text-4xl font-bold text-blue-600">0</p>
+                    <p id="player1-average" class="text-sm text-blue-500 mt-1">Average: 0 per turn</p>
+                </div>
+                <div class="bg-gradient-to-br from-red-50 to-red-100 rounded-lg p-6 text-center">
+                    <h4 class="text-lg font-semibold text-red-700 mb-2">Player 2 Total Score</h4>
+                    <p id="player2-score" class="text-4xl font-bold text-red-600">0</p>
+                    <p id="player2-average" class="text-sm text-red-500 mt-1">Average: 0 per turn</p>
+                </div>
+            </div>
+
+            <!-- Cooperation Stats -->
+            <div class="grid md:grid-cols-2 gap-6 mb-8">
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h4 class="font-semibold text-gray-700 mb-3">Cooperation Rate</h4>
+                    <div class="flex items-center gap-4">
+                        <div class="flex-1">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-blue-600">Player 1</span>
+                                <span id="player1-coop" class="font-medium">0%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div id="player1-coop-bar" class="result-bar bg-blue-500 h-3 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+                        <div class="flex-1">
+                            <div class="flex justify-between text-sm mb-1">
+                                <span class="text-red-600">Player 2</span>
+                                <span id="player2-coop" class="font-medium">0%</span>
+                            </div>
+                            <div class="w-full bg-gray-200 rounded-full h-3">
+                                <div id="player2-coop-bar" class="result-bar bg-red-500 h-3 rounded-full" style="width: 0%"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h4 class="font-semibold text-gray-700 mb-3">Outcome Distribution</h4>
+                    <div class="grid grid-cols-2 gap-2 text-sm">
+                        <div class="bg-green-100 p-2 rounded text-center">
+                            <p class="font-semibold text-green-700" id="both-coop">0</p>
+                            <p class="text-green-600">Both Cooperate</p>
+                        </div>
+                        <div class="bg-orange-100 p-2 rounded text-center">
+                            <p class="font-semibold text-orange-700" id="both-defect">0</p>
+                            <p class="text-orange-600">Both Defect</p>
+                        </div>
+                        <div class="bg-yellow-100 p-2 rounded text-center">
+                            <p class="font-semibold text-yellow-700" id="p1-coop-p2-defect">0</p>
+                            <p class="text-yellow-600">P1 C, P2 D</p>
+                        </div>
+                        <div class="bg-yellow-100 p-2 rounded text-center">
+                            <p class="font-semibold text-yellow-700" id="p1-defect-p2-coop">0</p>
+                            <p class="text-yellow-600">P1 D, P2 C</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Winner -->
+            <div id="winner-container" class="text-center p-4 rounded-lg hidden">
+                <p class="text-xl font-bold" id="winner-text"></p>
+            </div>
+        </div>
+
+        <!-- Tournament Results -->
+        <div id="tournament-container" class="bg-white rounded-xl card-shadow p-6 mb-8 hidden">
+            <h3 class="text-2xl font-bold text-gray-800 mb-2 text-center">🏆 Tournament Results</h3>
+            <p class="text-gray-600 text-center mb-6">
+                <span id="tournament-trials-text"></span>
+                Each strategy plays against all others (including itself) with <span id="tournament-iterations" class="font-semibold">200</span> ± <span id="tournament-deviation" class="font-semibold">5%</span> iterations
+            </p>
+            
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gradient-to-r from-orange-100 to-amber-100">
+                            <th class="p-3 text-left rounded-tl-lg">Rank</th>
+                            <th class="p-3 text-left">Strategy</th>
+                            <th class="p-3 text-center">Total Score</th>
+                            <th class="p-3 text-center">Avg Score</th>
+                            <th class="p-3 text-center">Wins</th>
+                            <th class="p-3 text-center">Losses</th>
+                            <th class="p-3 text-center">Ties</th>
+                            <th class="p-3 text-center rounded-tr-lg">Coop Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tournament-body">
+                        <!-- Will be populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Matchup Matrix -->
+            <div class="mt-8">
+                <h4 class="text-lg font-bold text-gray-800 mb-4">Score Matrix (Row vs Column)</h4>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-xs" id="matrix-table">
+                        <!-- Will be populated by JS -->
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Turn History -->
+        <div id="history-container" class="bg-white rounded-xl card-shadow p-6 mb-8 hidden">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Recent Turns (Last 20)</h3>
+            <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                    <thead>
+                        <tr class="bg-gray-100">
+                            <th class="p-2 text-left">Turn</th>
+                            <th class="p-2 text-left">Player 1</th>
+                            <th class="p-2 text-left">Player 2</th>
+                            <th class="p-2 text-left">P1 Score</th>
+                            <th class="p-2 text-left">P2 Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-body">
+                        <!-- Will be populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- About Modal -->
+    <div id="about-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="text-center mb-6">
+                <h2 class="text-3xl font-bold text-gray-800 mb-2">Iterated Prisoner's Dilemma</h2>
+                <p class="text-lg text-purple-600 font-semibold">Version 0.88.7</p>
+            </div>
+            
+            <div class="space-y-4 text-gray-700">
+                <div class="flex items-start gap-3 p-3 bg-purple-50 rounded-lg">
+                    <span class="text-2xl">👤</span>
+                    <div>
+                        <p class="font-semibold text-gray-800">Author</p>
+                        <p>Paul Franceschi</p>
+                        <p class="text-xs text-gray-600 mt-2">Experimental test based on the paper:<br>
+                        <a href="https://philarchive.org/rec/FRACCP" target="_blank" class="text-purple-600 hover:underline break-all">Cadre conceptuel pour la résolution d'une classe de conflits de valeurs</a>
+                        </p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                    <span class="text-2xl">🤖</span>
+                    <div>
+                        <p class="font-semibold text-gray-800">Made with</p>
+                        <p>Qwen 3.5-Plus</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                    <span class="text-2xl">📜</span>
+                    <div>
+                        <p class="font-semibold text-gray-800">License</p>
+                        <p>MIT License</p>
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <span class="text-2xl">📦</span>
+                    <div>
+                        <p class="font-semibold text-gray-800">GitHub Repository</p>
+                        <a href="https://github.com/paulfranceschi/IPD" target="_blank" rel="noopener noreferrer" 
+                           class="text-purple-600 hover:text-purple-800 underline break-all">
+                            https://github.com/paulfranceschi/IPD
+                        </a>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="mt-6 text-center">
+                <p class="text-sm text-gray-500 mb-4">
+                    A comprehensive simulation of the Iterated Prisoner's Dilemma with 30 different strategies.
+                </p>
+                <button id="close-modal-btn" class="bg-gradient-to-r from-purple-500 to-indigo-600 text-white px-6 py-2 rounded-lg font-semibold hover:from-purple-600 hover:to-indigo-700 transition-all">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Strategy definitions (30 strategies total)
+        const strategies = [
+            { id: 'always_cooperate', name: 'Always Cooperate', description: 'Always chooses to cooperate' },
+            { id: 'always_defect', name: 'Always Defect', description: 'Always chooses to defect' },
+            { id: 'random', name: 'Random (50/50)', description: 'Randomly cooperates or defects (50/50)' },
+            { id: 'random_prob', name: 'Random with Probability', description: 'Cooperates with configurable probability' },
+            { id: 'tit_for_tat', name: 'Tit-for-Tat', description: 'Cooperates first, then copies opponent\'s last move' },
+            { id: 'imperfect_tft', name: 'Imperfect TFT', description: 'Copies opponent\'s last move with configurable probability' },
+            { id: 'omega_tft', name: 'Omega TFT', description: 'TFT with deadlock detection and noise-tolerant retaliation' },
+            { id: 'reactive_c', name: 'Reactive(C, p, q)', description: 'First move: C; After C: p; After D: q' },
+            { id: 'reactive_d', name: 'Reactive(D, p, q)', description: 'First move: D; After C: p; After D: q' },
+            { id: 'suspicious_tft', name: 'Suspicious Tit-for-Tat', description: 'Defects first, then copies opponent\'s last move' },
+            { id: 'gradual_tft', name: 'Gradual Tit-for-Tat', description: 'Increases punishment with each defection, apologizes with configurable cooperations' },
+            { id: 'fully_gradual_tft', name: 'Fully Gradual TFT', description: 'Apologies = max_apologies - defection_count (inversely proportional)' },
+            { id: 'fully_gradual_tf2t', name: 'Fully Gradual TF2T', description: 'Fully Gradual TFT but defects only after 2 consecutive opponent defections' },
+            { id: 'gradually_sanctioning_tf2t', name: 'Gradually Sanctioning TF2T', description: 'TF2T with increasing punishment, no apologies' },
+            { id: 'two_tits_for_tat', name: 'Two Tits for Tat', description: 'Defects twice after being defected against' },
+            { id: 'tit_for_2tat', name: 'Tit-for-2-Tat', description: 'Defects only after 2 consecutive defections' },
+            { id: 'generous_tft', name: 'Generous Tit-for-Tat', description: 'Forgives defection with probability' },
+            { id: 'firm_but_fair', name: 'Firm But Fair', description: 'Cooperates except after sucker payoff' },
+            { id: 'reverse_tft', name: 'Reverse Tit-for-Tat', description: 'Defects first, then reverses opponent\'s last move' },
+            { id: 'grim_trigger', name: 'Grim Trigger', description: 'Cooperates until opponent defects, then always defects' },
+            { id: 'trigger', name: 'Trigger', description: 'Cooperates until opponent defects once, then always defects' },
+            { id: 'pavlov', name: 'Pavlov (Win-Stay/Lose-Shift)', description: 'Repeats successful moves, switches after losses' },
+            { id: 'evolved_fsm_4', name: 'Evolved FSM 4', description: '4-state finite state machine trained with evolutionary algorithm' },
+            { id: 'evolved_fsm_16', name: 'Evolved FSM 16', description: '16-state finite state machine trained with evolutionary algorithm' },
+            { id: 'evolved_fsm_16_noise_05', name: 'Evolved FSM 16 Noise 05', description: '16-state FSM trained with evolutionary algorithm (noise=0.05)' },
+            { id: 'evolved_lookerup_1_1_1', name: 'Evolved LookerUp 1_1_1', description: '1-1-1 LookerUp trained with evolutionary algorithm' },
+            { id: 'evolved_lookerup_2_2_2', name: 'Evolved LookerUp 2_2_2', description: '2-2-2 LookerUp trained with evolutionary algorithm' },
+            { id: 'aggravater', name: 'Aggravater', description: 'Defects on first 3 turns, then Grudger (defects if opponent ever defected)' },
+            { id: 'four_duality_optimizer', name: '4-Duality-Optimizer', description: 'Tracks defection waves >1; retaliates with equal number of defections' },
+            { id: 'four_duality_optimizer_b', name: '4-Duality-Optimizer-B', description: 'Like 4-Duality-Optimizer but counts ongoing defection wave at end' }
+        ];
+
+        // Game state
+        let selectedP1 = 'tit_for_tat';
+        let selectedP2 = 'always_defect';
+        let baseIterations = 200;
+        let iterationDeviation = 0.05;
+        let trials = 5;
+        let generousProb = 0.33;
+        let randomCoopProb = 0.33;
+        let imperfectTftProb = 0.90;
+        let reactiveP = 0.90;
+        let reactiveQ = 0.10;
+        let noiseProb = 0.003;
+        let gradualApologies = 2;
+        let fullyGradualApologiesMax = 6;
+
+        // OmegaTFT state
+        let omegaTftState = {
+            deadlockCounter: 0,
+            randomnessCounter: 0
+        };
+        const omegaTftDeadlockThreshold = 3;
+        const omegaTftRandomnessThreshold = 8;
+
+        const PAYOFF = { R: 3, S: 0, T: 5, P: 1 };
+
+        function getRandomIterations() {
+            const minIter = Math.floor(baseIterations * (1 - iterationDeviation));
+            const maxIter = Math.floor(baseIterations * (1 + iterationDeviation));
+            return Math.floor(Math.random() * (maxIter - minIter + 1)) + minIter;
+        }
+
+        function applyNoise(move, noise) {
+            if (Math.random() < noise) {
+                return move === 'cooperate' ? 'defect' : 'cooperate';
+            }
+            return move;
+        }
+
+        function countDefectionWaves(history) {
+            let waves = 0;
+            let inWave = false;
+            for (let i = 0; i < history.length; i++) {
+                if (history[i].opponent === 'defect' && !inWave) {
+                    waves++;
+                    inWave = true;
+                } else if (history[i].opponent === 'cooperate') {
+                    inWave = false;
+                }
+            }
+            return waves;
+        }
+
+        const strategyFunctions = {
+            always_cooperate: () => 'cooperate',
+            always_defect: () => 'defect',
+            random: () => Math.random() < 0.5 ? 'cooperate' : 'defect',
+            random_prob: () => Math.random() < randomCoopProb ? 'cooperate' : 'defect',
+            tit_for_tat: (history) => history.length === 0 ? 'cooperate' : history[history.length - 1].opponent,
+            imperfect_tft: (history) => {
+                if (history.length === 0) return 'cooperate';
+                const lastOpponentMove = history[history.length - 1].opponent;
+                return Math.random() < imperfectTftProb ? lastOpponentMove : (lastOpponentMove === 'cooperate' ? 'defect' : 'cooperate');
+            },
+            omega_tft: (history) => {
+                // Cooperate on the first move
+                if (history.length === 0) return 'cooperate';
+
+                // TFT on round 2
+                if (history.length === 1) return history[0].opponent;
+
+                let move;
+
+                // Are we deadlocked? (in a CD -> DC loop)
+                if (omegaTftState.deadlockCounter >= omegaTftDeadlockThreshold) {
+                    move = 'cooperate';
+                    if (omegaTftState.deadlockCounter === omegaTftDeadlockThreshold) {
+                        omegaTftState.deadlockCounter = omegaTftDeadlockThreshold + 1;
+                    } else {
+                        omegaTftState.deadlockCounter = 0;
+                    }
+                } else {
+                    // Update counters
+                    if (history.length >= 2 && 
+                        history[history.length - 2].opponent === 'cooperate' && 
+                        history[history.length - 1].opponent === 'cooperate') {
+                        omegaTftState.randomnessCounter -= 1;
+                    }
+
+                    // If the opponent's move changed, increase the counter
+                    if (history.length >= 2 && 
+                        history[history.length - 2].opponent !== history[history.length - 1].opponent) {
+                        omegaTftState.randomnessCounter += 1;
+                    }
+
+                    // If the opponent's last move differed from mine, increase the counter
+                    if (history[history.length - 1].self !== history[history.length - 1].opponent) {
+                        omegaTftState.randomnessCounter += 1;
+                    }
+
+                    // Compare counts to thresholds
+                    // If randomness_counter exceeds Y, Defect for the remainder
+                    if (omegaTftState.randomnessCounter >= omegaTftRandomnessThreshold) {
+                        move = 'defect';
+                    } else {  // TFT
+                        move = history[history.length - 1].opponent;
+                    }
+
+                    // Check for deadlock
+                    if (history.length >= 2 && 
+                        history[history.length - 2].opponent !== history[history.length - 1].opponent) {
+                        omegaTftState.deadlockCounter += 1;
+                    } else {
+                        omegaTftState.deadlockCounter = 0;
+                    }
+                }
+
+                return move;
+            },
+            reactive_c: (history) => {
+                if (history.length === 0) return 'cooperate';
+                const lastOpponentMove = history[history.length - 1].opponent;
+                return lastOpponentMove === 'cooperate' ? (Math.random() < reactiveP ? 'cooperate' : 'defect') : (Math.random() < reactiveQ ? 'cooperate' : 'defect');
+            },
+            reactive_d: (history) => {
+                if (history.length === 0) return 'defect';
+                const lastOpponentMove = history[history.length - 1].opponent;
+                return lastOpponentMove === 'cooperate' ? (Math.random() < reactiveP ? 'cooperate' : 'defect') : (Math.random() < reactiveQ ? 'cooperate' : 'defect');
+            },
+            suspicious_tft: (history) => history.length === 0 ? 'defect' : history[history.length - 1].opponent,
+            gradual_tft: (history) => {
+                if (history.length === 0) return 'cooperate';
+                let consecutiveOurDefections = 0, consecutiveOurCooperations = 0;
+                for (let i = history.length - 1; i >= 0; i--) {
+                    if (history[i].self === 'defect') {
+                        if (consecutiveOurCooperations === 0) consecutiveOurDefections++;
+                        else break;
+                    } else {
+                        if (consecutiveOurDefections === 0) consecutiveOurCooperations++;
+                        else break;
+                    }
+                }
+                if (history[history.length - 1].opponent === 'defect') return 'defect';
+                if (gradualApologies > 0 && consecutiveOurCooperations > 0 && consecutiveOurCooperations < gradualApologies) {
+                    let justFinishedPunishment = false;
+                    for (let i = history.length - 1 - consecutiveOurCooperations; i >= 0; i--) {
+                        if (history[i].self === 'defect') { justFinishedPunishment = true; break; }
+                        if (history[i].self === 'cooperate') break;
+                    }
+                    if (justFinishedPunishment) return 'cooperate';
+                }
+                let totalOpponentDefectionWaves = countDefectionWaves(history);
+                let expectedPunishmentDefections = 0;
+                for (let w = 1; w <= totalOpponentDefectionWaves; w++) expectedPunishmentDefections += w;
+                let ourPunishmentDefections = history.filter(h => h.self === 'defect').length;
+                if (ourPunishmentDefections < expectedPunishmentDefections && consecutiveOurDefections > 0) return 'defect';
+                return history[history.length - 1].opponent;
+            },
+            fully_gradual_tft: (history) => {
+                if (history.length === 0) return 'cooperate';
+                let consecutiveOurDefections = 0, consecutiveOurCooperations = 0;
+                for (let i = history.length - 1; i >= 0; i--) {
+                    if (history[i].self === 'defect') {
+                        if (consecutiveOurCooperations === 0) consecutiveOurDefections++;
+                        else break;
+                    } else {
+                        if (consecutiveOurDefections === 0) consecutiveOurCooperations++;
+                        else break;
+                    }
+                }
+                if (history[history.length - 1].opponent === 'defect') return 'defect';
+                let totalOpponentDefectionWaves = countDefectionWaves(history);
+                let currentApologies = Math.max(0, fullyGradualApologiesMax - totalOpponentDefectionWaves);
+                if (currentApologies > 0 && consecutiveOurCooperations > 0 && consecutiveOurCooperations < currentApologies) {
+                    let justFinishedPunishment = false;
+                    for (let i = history.length - 1 - consecutiveOurCooperations; i >= 0; i--) {
+                        if (history[i].self === 'defect') { justFinishedPunishment = true; break; }
+                        if (history[i].self === 'cooperate') break;
+                    }
+                    if (justFinishedPunishment) return 'cooperate';
+                }
+                let expectedPunishmentDefections = 0;
+                for (let w = 1; w <= totalOpponentDefectionWaves; w++) expectedPunishmentDefections += w;
+                let ourPunishmentDefections = history.filter(h => h.self === 'defect').length;
+                if (ourPunishmentDefections < expectedPunishmentDefections && consecutiveOurDefections > 0) return 'defect';
+                return history[history.length - 1].opponent;
+            },
+            fully_gradual_tf2t: (history) => {
+                if (history.length === 0) return 'cooperate';
+                let consecutiveOpponentDefections = 0;
+                for (let i = history.length - 1; i >= 0; i--) {
+                    if (history[i].opponent === 'defect') consecutiveOpponentDefections++;
+                    else break;
+                }
+                if (consecutiveOpponentDefections < 2) return 'cooperate';
+                let consecutiveOurDefections = 0, consecutiveOurCooperations = 0;
+                for (let i = history.length - 1; i >= 0; i--) {
+                    if (history[i].self === 'defect') {
+                        if (consecutiveOurCooperations === 0) consecutiveOurDefections++;
+                        else break;
+                    } else {
+                        if (consecutiveOurDefections === 0) consecutiveOurCooperations++;
+                        else break;
+                    }
+                }
+                if (history[history.length - 1].opponent === 'defect') return 'defect';
+                let totalOpponentDefectionWaves = countDefectionWaves(history);
+                let currentApologies = Math.max(0, fullyGradualApologiesMax - totalOpponentDefectionWaves);
+                if (currentApologies > 0 && consecutiveOurCooperations > 0 && consecutiveOurCooperations < currentApologies) {
+                    let justFinishedPunishment = false;
+                    for (let i = history.length - 1 - consecutiveOurCooperations; i >= 0; i--) {
+                        if (history[i].self === 'defect') { justFinishedPunishment = true; break; }
+                        if (history[i].self === 'cooperate') break;
+                    }
+                    if (justFinishedPunishment) return 'cooperate';
+                }
+                let expectedPunishmentDefections = 0;
+                for (let w = 1; w <= totalOpponentDefectionWaves; w++) expectedPunishmentDefections += w;
+                let ourPunishmentDefections = history.filter(h => h.self === 'defect').length;
+                if (ourPunishmentDefections < expectedPunishmentDefections && consecutiveOurDefections > 0) return 'defect';
+                return 'cooperate';
+            },
+            gradually_sanctioning_tf2t: (history) => {
+                if (history.length === 0) return 'cooperate';
+                let consecutiveOpponentDefections = 0;
+                for (let i = history.length - 1; i >= 0; i--) {
+                    if (history[i].opponent === 'defect') consecutiveOpponentDefections++;
+                    else break;
+                }
+                if (consecutiveOpponentDefections < 2) return 'cooperate';
+                let consecutiveOurDefections = 0, consecutiveOurCooperations = 0;
+                for (let i = history.length - 1; i >= 0; i--) {
+                    if (history[i].self === 'defect') {
+                        if (consecutiveOurCooperations === 0) consecutiveOurDefections++;
+                        else break;
+                    } else {
+                        if (consecutiveOurDefections === 0) consecutiveOurCooperations++;
+                        else break;
+                    }
+                }
+                if (history[history.length - 1].opponent === 'defect') return 'defect';
+                let totalOpponentDefectionWaves = countDefectionWaves(history);
+                let expectedPunishmentDefections = 0;
+                for (let w = 1; w <= totalOpponentDefectionWaves; w++) expectedPunishmentDefections += w;
+                let ourPunishmentDefections = history.filter(h => h.self === 'defect').length;
+                if (ourPunishmentDefections < expectedPunishmentDefections && consecutiveOurDefections > 0) return 'defect';
+                return 'cooperate';
+            },
+            two_tits_for_tat: (history) => {
+                if (history.length === 0) return 'cooperate';
+                let totalOpponentDefections = history.filter(h => h.opponent === 'defect').length;
+                let ourDefections = history.filter(h => h.self === 'defect').length;
+                if (totalOpponentDefections * 2 > ourDefections) return 'defect';
+                if (history[history.length - 1].opponent === 'defect') return 'defect';
+                return 'cooperate';
+            },
+            tit_for_2tat: (history) => {
+                if (history.length === 0) return 'cooperate';
+                if (history.length === 1) return 'cooperate';
+                const lastTwo = history.slice(-2);
+                if (lastTwo[0].opponent === 'defect' && lastTwo[1].opponent === 'defect') return 'defect';
+                return 'cooperate';
+            },
+            generous_tft: (history) => {
+                if (history.length === 0) return 'cooperate';
+                if (history[history.length - 1].opponent === 'defect') {
+                    return Math.random() < generousProb ? 'cooperate' : 'defect';
+                }
+                return 'cooperate';
+            },
+            firm_but_fair: (history, lastPayoff) => {
+                if (history.length === 0) return 'cooperate';
+                if (lastPayoff === PAYOFF.S) return 'defect';
+                return 'cooperate';
+            },
+            reverse_tft: (history) => {
+                if (history.length === 0) return 'defect';
+                const lastOpponentMove = history[history.length - 1].opponent;
+                return lastOpponentMove === 'cooperate' ? 'defect' : 'cooperate';
+            },
+            grim_trigger: (history) => {
+                for (let i = 0; i < history.length; i++) {
+                    if (history[i].opponent === 'defect') return 'defect';
+                }
+                return 'cooperate';
+            },
+            trigger: (history) => {
+                for (let i = 0; i < history.length; i++) {
+                    if (history[i].opponent === 'defect') return 'defect';
+                }
+                return 'cooperate';
+            },
+            pavlov: (history, lastPayoff) => {
+                if (history.length === 0) return 'cooperate';
+                if (lastPayoff === PAYOFF.R || lastPayoff === PAYOFF.T) {
+                    return history[history.length - 1].self;
+                } else {
+                    return history[history.length - 1].self === 'cooperate' ? 'defect' : 'cooperate';
+                }
+            },
+            evolved_fsm_4: (history) => {
+                if (history.length === 0) return 'cooperate';
+                let state = 0;
+                for (let i = 0; i < history.length; i++) {
+                    const opp = history[i].opponent;
+                    if (state === 0) state = (opp === 'cooperate') ? 0 : 2;
+                    else if (state === 1) state = (opp === 'cooperate') ? 3 : 0;
+                    else if (state === 2) state = (opp === 'cooperate') ? 2 : 1;
+                    else if (state === 3) state = (opp === 'cooperate') ? 3 : 1;
+                }
+                return state === 0 ? 'cooperate' : 'defect';
+            },
+            evolved_fsm_16: (history) => {
+                if (history.length === 0) return 'cooperate';
+                let state = 0;
+                for (let i = 0; i < history.length; i++) {
+                    const opp = history[i].opponent;
+                    switch(state) {
+                        case 0: state = (opp === 'cooperate') ? 0 : 12; break;
+                        case 1: state = (opp === 'cooperate') ? 3 : 6; break;
+                        case 2: state = (opp === 'cooperate') ? 2 : 14; break;
+                        case 3: state = 3; break;
+                        case 5: state = (opp === 'cooperate') ? 12 : 10; break;
+                        case 6: state = (opp === 'cooperate') ? 5 : 12; break;
+                        case 7: state = (opp === 'cooperate') ? 3 : 1; break;
+                        case 8: state = 5; break;
+                        case 10: state = (opp === 'cooperate') ? 11 : 8; break;
+                        case 11: state = (opp === 'cooperate') ? 15 : 5; break;
+                        case 12: state = (opp === 'cooperate') ? 8 : 11; break;
+                        case 13: state = (opp === 'cooperate') ? 13 : 7; break;
+                        case 14: state = 13; break;
+                        case 15: state = (opp === 'cooperate') ? 15 : 2; break;
+                        default: state = (opp === 'cooperate') ? 0 : 12;
+                    }
+                }
+                return [0, 1, 6, 7, 8, 10, 12, 15].includes(state) ? 'cooperate' : 'defect';
+            },
+            evolved_fsm_16_noise_05: (history) => {
+                if (history.length === 0) return 'cooperate';
+                let state = 0;
+                for (let i = 0; i < history.length; i++) {
+                    const opp = history[i].opponent;
+                    switch(state) {
+                        case 0: state = (opp === 'cooperate') ? 8 : 3; break;
+                        case 1: state = (opp === 'cooperate') ? 13 : 15; break;
+                        case 2: state = (opp === 'cooperate') ? 12 : 3; break;
+                        case 3: state = (opp === 'cooperate') ? 10 : 3; break;
+                        case 4: state = (opp === 'cooperate') ? 5 : 4; break;
+                        case 5: state = (opp === 'cooperate') ? 4 : 10; break;
+                        case 6: state = (opp === 'cooperate') ? 8 : 6; break;
+                        case 8: state = (opp === 'cooperate') ? 2 : 4; break;
+                        case 10: state = (opp === 'cooperate') ? 4 : 1; break;
+                        case 11: state = (opp === 'cooperate') ? 14 : 13; break;
+                        case 12: state = (opp === 'cooperate') ? 13 : 2; break;
+                        case 13: state = (opp === 'cooperate') ? 13 : 6; break;
+                        case 14: state = (opp === 'cooperate') ? 3 : 13; break;
+                        case 15: state = (opp === 'cooperate') ? 5 : 11; break;
+                        default: state = (opp === 'cooperate') ? 8 : 3;
+                    }
+                }
+                return [0, 1, 2, 3, 6, 8, 11, 12, 13, 15].includes(state) ? 'cooperate' : 'defect';
+            },
+            evolved_lookerup_1_1_1: (history) => {
+                if (history.length === 0) return 'cooperate';
+                const oppOpening = history[0].opponent;
+                const ourLast = history[history.length - 1].self;
+                const oppLast = history[history.length - 1].opponent;
+                const index = (ourLast === 'defect' ? 1 : 0) * 4 + (oppLast === 'defect' ? 1 : 0) * 2 + (oppOpening === 'defect' ? 1 : 0);
+                return "CDDDDCDD"[index] === 'C' ? 'cooperate' : 'defect';
+            },
+            evolved_lookerup_2_2_2: (history) => {
+                if (history.length < 2) return 'cooperate';
+                const oppOpening1 = history[0].opponent;
+                const oppOpening2 = history[1].opponent;
+                const ourLast1 = history[history.length - 1].self;
+                const ourLast2 = history[history.length - 2].self;
+                const oppLast1 = history[history.length - 1].opponent;
+                const oppLast2 = history[history.length - 2].opponent;
+                const ourLast2Bits = (ourLast2 === 'defect' ? 1 : 0) * 2 + (ourLast1 === 'defect' ? 1 : 0);
+                const oppLast2Bits = (oppLast2 === 'defect' ? 1 : 0) * 2 + (oppLast1 === 'defect' ? 1 : 0);
+                const oppOpening2Bits = (oppOpening2 === 'defect' ? 1 : 0) * 2 + (oppOpening1 === 'defect' ? 1 : 0);
+                const index = ourLast2Bits * 16 + oppLast2Bits * 4 + oppOpening2Bits;
+                const pattern = "CDDCDCDDCDDDCDDDDDCDCDCCCDDCCDCDDDCCCCCDDDCDDDDDDDDDCCDDCDDDCCCD";
+                return pattern[index] === 'C' ? 'cooperate' : 'defect';
+            },
+            aggravater: (history) => {
+                if (history.length < 3) return 'defect';
+                for (let i = 0; i < history.length; i++) {
+                    if (history[i].opponent === 'defect') return 'defect';
+                }
+                return 'cooperate';
+            },
+            four_duality_optimizer: (history) => {
+                let wavesGreaterThanOne = 0;
+                let currentWaveLength = 0;
+                for (let i = 0; i < history.length; i++) {
+                    if (history[i].opponent === 'defect') {
+                        currentWaveLength++;
+                    } else {
+                        if (currentWaveLength > 1) wavesGreaterThanOne++;
+                        currentWaveLength = 0;
+                    }
+                }
+                // Note: Does NOT count ongoing wave at end
+                let consecutiveOurDefections = 0; 
+                for (let i = history.length - 1; i >= 0; i--) {
+                    if (history[i].self === 'defect') {
+                        consecutiveOurDefections++;
+                    } else {
+                        break;
+                    }
+                }
+                let consecutiveOpponentDefections = 0;
+                for (let i = history.length - 1; i >= 0; i--) {
+                    if (history[i].opponent === 'defect') consecutiveOpponentDefections++;
+                    else break; 
+                }
+                if (consecutiveOpponentDefections >= 2) return 'defect';
+                if (consecutiveOurDefections > 0 && consecutiveOurDefections < wavesGreaterThanOne) return 'defect';
+                return 'cooperate';
+            },
+            four_duality_optimizer_b: (history) => {
+                let wavesGreaterThanOne = 0;
+                let currentWaveLength = 0;
+                for (let i = 0; i < history.length; i++) {
+                    if (history[i].opponent === 'defect') {
+                        currentWaveLength++;
+                    } else {
+                        if (currentWaveLength > 1) wavesGreaterThanOne++;
+                        currentWaveLength = 0;
+                    }
+                }
+                // Note: DOES count ongoing wave at end
+                if (currentWaveLength > 1) wavesGreaterThanOne++;
+                let consecutiveOurDefections = 0; 
+                for (let i = history.length - 1; i >= 0; i--) {
+                    if (history[i].self === 'defect') {
+                        consecutiveOurDefections++;
+                    } else {
+                        break;
+                    }
+                }
+                let consecutiveOpponentDefections = 0;
+                for (let i = history.length - 1; i >= 0; i--) {
+                    if (history[i].opponent === 'defect') consecutiveOpponentDefections++;
+                    else break; 
+                }
+                if (consecutiveOpponentDefections >= 2) return 'defect';
+                if (consecutiveOurDefections > 0 && consecutiveOurDefections < wavesGreaterThanOne) return 'defect';
+                return 'cooperate';
+            }
+        };
+
+        const payoffs = {
+            cooperate_cooperate: { p1: PAYOFF.R, p2: PAYOFF.R },
+            cooperate_defect: { p1: PAYOFF.S, p2: PAYOFF.T },
+            defect_cooperate: { p1: PAYOFF.T, p2: PAYOFF.S },
+            defect_defect: { p1: PAYOFF.P, p2: PAYOFF.P }
+        };
+
+        function initializeStrategySelectors() {
+            const p1Container = document.getElementById('player1-strategies');
+            const p2Container = document.getElementById('player2-strategies');
+            p1Container.innerHTML = '';
+            p2Container.innerHTML = '';
+
+            strategies.forEach(strategy => {
+                const p1Card = document.createElement('div');
+                p1Card.className = `strategy-card p-3 rounded-lg border-2 cursor-pointer ${selectedP1 === strategy.id ? 'selected border-purple-500' : 'border-gray-200'}`;
+                p1Card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="font-semibold text-gray-800 text-sm">${strategy.name}</p>
+                            <p class="text-xs text-gray-500 mt-1">${strategy.description}</p>
+                        </div>
+                        <div class="w-4 h-4 rounded-full border-2 flex-shrink-0 ml-2 ${selectedP1 === strategy.id ? 'bg-purple-500 border-purple-500' : 'border-gray-300'}"></div>
+                    </div>
+                `;
+                p1Card.addEventListener('click', () => selectStrategy(1, strategy.id));
+                p1Container.appendChild(p1Card);
+
+                const p2Card = document.createElement('div');
+                p2Card.className = `strategy-card p-3 rounded-lg border-2 cursor-pointer ${selectedP2 === strategy.id ? 'selected border-purple-500' : 'border-gray-200'}`;
+                p2Card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1">
+                            <p class="font-semibold text-gray-800 text-sm">${strategy.name}</p>
+                            <p class="text-xs text-gray-500 mt-1">${strategy.description}</p>
+                        </div>
+                        <div class="w-4 h-4 rounded-full border-2 flex-shrink-0 ml-2 ${selectedP2 === strategy.id ? 'bg-purple-500 border-purple-500' : 'border-gray-300'}"></div>
+                    </div>
+                `;
+                p2Card.addEventListener('click', () => selectStrategy(2, strategy.id));
+                p2Container.appendChild(p2Card);
+            });
+        }
+
+        function selectStrategy(player, strategyId) {
+            if (player === 1) selectedP1 = strategyId;
+            else selectedP2 = strategyId;
+            initializeStrategySelectors();
+        }
+
+        function runMatch(strategy1, strategy2, numIterations, noise) {
+            // Reset OmegaTFT state for new match
+            omegaTftState = { deadlockCounter: 0, randomnessCounter: 0 };
+            
+            let history = [];
+            let p1Score = 0, p2Score = 0, p1CoopCount = 0, p2CoopCount = 0;
+
+            for (let turn = 0; turn < numIterations; turn++) {
+                const p1History = history.map(h => ({ opponent: h.p2, self: h.p1 }));
+                const p2History = history.map(h => ({ opponent: h.p1, self: h.p2 }));
+                const lastP1Payoff = history.length > 0 ? history[history.length - 1].p1Score : null;
+                const lastP2Payoff = history.length > 0 ? history[history.length - 1].p2Score : null;
+                
+                let p1Move = strategyFunctions[strategy1](p1History, lastP1Payoff);
+                let p2Move = strategyFunctions[strategy2](p2History, lastP2Payoff);
+
+                p1Move = applyNoise(p1Move, noise);
+                p2Move = applyNoise(p2Move, noise);
+
+                const payoffKey = `${p1Move}_${p2Move}`;
+                const payoff = payoffs[payoffKey];
+
+                p1Score += payoff.p1;
+                p2Score += payoff.p2;
+                if (p1Move === 'cooperate') p1CoopCount++;
+                if (p2Move === 'cooperate') p2CoopCount++;
+
+                history.push({ turn: turn + 1, p1: p1Move, p2: p2Move, p1Score: payoff.p1, p2Score: payoff.p2 });
+            }
+
+            return { p1Score, p2Score, p1CoopRate: (p1CoopCount / numIterations) * 100, p2CoopRate: (p2CoopCount / numIterations) * 100, actualIterations: numIterations };
+        }
+
+        function runTournament() {
+            const progressContainer = document.getElementById('progress-container');
+            const resultsContainer = document.getElementById('results-container');
+            const historyContainer = document.getElementById('history-container');
+            const tournamentContainer = document.getElementById('tournament-container');
+            
+            progressContainer.classList.remove('hidden');
+            resultsContainer.classList.add('hidden');
+            historyContainer.classList.add('hidden');
+            tournamentContainer.classList.add('hidden');
+
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            const progressLabel = document.getElementById('progress-label');
+            const trialProgressContainer = document.getElementById('trial-progress-container');
+            const trialProgressBar = document.getElementById('trial-progress-bar');
+            const trialProgressText = document.getElementById('trial-progress-text');
+            
+            if (trials > 1) trialProgressContainer.classList.remove('hidden');
+            else trialProgressContainer.classList.add('hidden');
+            
+            progressLabel.textContent = 'Tournament Progress';
+            const totalMatches = strategies.length * strategies.length;
+            
+            const accumulatedResults = strategies.map(s => ({
+                id: s.id, name: s.name, totalScore: 0, wins: 0, losses: 0, ties: 0,
+                totalCoop: 0, totalIterations: 0, matches: 0, scores: {}
+            }));
+
+            const scoreMatrix = {};
+            strategies.forEach(s1 => {
+                scoreMatrix[s1.id] = {};
+                strategies.forEach(s2 => { scoreMatrix[s1.id][s2.id] = 0; });
+            });
+
+            function runTrial(trialNum) {
+                if (trials > 1) {
+                    const trialProgress = (trialNum / trials) * 100;
+                    trialProgressBar.style.width = `${trialProgress}%`;
+                    trialProgressText.textContent = `Trial ${trialNum} / ${trials}`;
+                }
+                
+                const trialResults = strategies.map(s => ({
+                    id: s.id, name: s.name, totalScore: 0, wins: 0, losses: 0, ties: 0,
+                    totalCoop: 0, totalIterations: 0, matches: 0, scores: {}
+                }));
+
+                const trialScoreMatrix = {};
+                strategies.forEach(s1 => {
+                    trialScoreMatrix[s1.id] = {};
+                    strategies.forEach(s2 => { trialScoreMatrix[s1.id][s2.id] = 0; });
+                });
+
+                let matchCount = 0;
+
+                function runNextMatch(idx1, idx2) {
+                    if (idx1 >= strategies.length) {
+                        trialResults.forEach((r, i) => {
+                            accumulatedResults[i].totalScore += r.totalScore;
+                            accumulatedResults[i].wins += r.wins;
+                            accumulatedResults[i].losses += r.losses;
+                            accumulatedResults[i].ties += r.ties;
+                            accumulatedResults[i].totalCoop += r.totalCoop;
+                            accumulatedResults[i].totalIterations += r.totalIterations;
+                            accumulatedResults[i].matches += r.matches;
+                            for (let key in r.scores) {
+                                accumulatedResults[i].scores[key] = (accumulatedResults[i].scores[key] || 0) + r.scores[key];
+                            }
+                        });
+
+                        strategies.forEach(s1 => {
+                            strategies.forEach(s2 => {
+                                scoreMatrix[s1.id][s2.id] += trialScoreMatrix[s1.id][s2.id];
+                            });
+                        });
+
+                        if (trialNum < trials) {
+                            setTimeout(() => runTrial(trialNum + 1), 10);
+                        } else {
+                            displayTournamentResults(accumulatedResults, scoreMatrix, trials);
+                            progressContainer.classList.add('hidden');
+                        }
+                        return;
+                    }
+
+                    if (idx2 >= strategies.length) {
+                        runNextMatch(idx1 + 1, 0);
+                        return;
+                    }
+
+                    const s1 = strategies[idx1];
+                    const s2 = strategies[idx2];
+                    const matchIterations = getRandomIterations();
+                    
+                    matchCount++;
+                    const matchProgress = (matchCount / totalMatches) * 100;
+                    progressBar.style.width = `${matchProgress}%`;
+                    progressText.textContent = `Match ${matchCount} / ${totalMatches} (${matchIterations} iter)`;
+                    
+                    const result = runMatch(s1.id, s2.id, matchIterations, noiseProb);
+                    
+                    const r1 = trialResults.find(r => r.id === s1.id);
+                    const r2 = trialResults.find(r => r.id === s2.id);
+                    
+                    r1.totalScore += result.p1Score;
+                    r1.totalCoop += result.p1CoopRate;
+                    r1.totalIterations += result.actualIterations;
+                    r1.matches++;
+                    r1.scores[s2.id] = result.p1Score;
+                    
+                    r2.totalScore += result.p2Score;
+                    r2.totalCoop += result.p2CoopRate;
+                    r2.totalIterations += result.actualIterations;
+                    r2.matches++;
+                    r2.scores[s1.id] = result.p2Score;
+                    
+                    trialScoreMatrix[s1.id][s2.id] = result.p1Score;
+
+                    if (result.p1Score > result.p2Score) { r1.wins++; r2.losses++; }
+                    else if (result.p2Score > result.p1Score) { r2.wins++; r1.losses++; }
+                    else { r1.ties++; r2.ties++; }
+
+                    setTimeout(() => runNextMatch(idx1, idx2 + 1), 5);
+                }
+
+                runNextMatch(0, 0);
+            }
+
+            runTrial(1);
+        }
+
+        function displayTournamentResults(results, scoreMatrix, numTrials) {
+            const tournamentContainer = document.getElementById('tournament-container');
+            tournamentContainer.classList.remove('hidden');
+            
+            document.getElementById('tournament-iterations').textContent = baseIterations;
+            document.getElementById('tournament-deviation').textContent = Math.round(iterationDeviation * 100) + '%';
+            
+            if (numTrials > 1) {
+                document.getElementById('tournament-trials-text').textContent = `Averaged over ${numTrials} trial(s). `;
+            } else {
+                document.getElementById('tournament-trials-text').textContent = '';
+            }
+
+            const sortedResults = [...results].sort((a, b) => b.totalScore - a.totalScore);
+
+            sortedResults.forEach(r => {
+                r.avgScore = r.matches > 0 ? (r.totalScore / r.matches).toFixed(2) : 0;
+                r.avgCoop = r.matches > 0 ? (r.totalCoop / r.matches).toFixed(1) : 0;
+                r.avgIterations = r.matches > 0 ? Math.round(r.totalIterations / r.matches) : 0;
+            });
+
+            const tbody = document.getElementById('tournament-body');
+            tbody.innerHTML = '';
+            
+            sortedResults.forEach((result, index) => {
+                const row = document.createElement('tr');
+                row.className = `tournament-row border-b ${index === 0 ? 'winner' : ''}`;
+                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : (index + 1);
+                
+                row.innerHTML = `
+                    <td class="p-3 font-bold">${medal}</td>
+                    <td class="p-3 font-semibold text-gray-800">${result.name}</td>
+                    <td class="p-3 text-center font-bold text-purple-600">${result.totalScore}</td>
+                    <td class="p-3 text-center">${result.avgScore}</td>
+                    <td class="p-3 text-center text-green-600">${result.wins}</td>
+                    <td class="p-3 text-center text-red-600">${result.losses}</td>
+                    <td class="p-3 text-center text-gray-600">${result.ties}</td>
+                    <td class="p-3 text-center">
+                        <div class="flex items-center justify-center gap-2">
+                            <div class="w-16 bg-gray-200 rounded-full h-2">
+                                <div class="bg-blue-500 h-2 rounded-full" style="width: ${result.avgCoop}%"></div>
+                            </div>
+                            <span class="text-xs">${result.avgCoop}%</span>
+                        </div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            const matrixTable = document.getElementById('matrix-table');
+            matrixTable.innerHTML = '';
+            
+            const headerRow = document.createElement('tr');
+            headerRow.innerHTML = '<th class="p-2 bg-gray-100">vs</th>';
+            strategies.forEach(s => {
+                const abbr = s.id.split('_').map(w => w[0]).join('').toUpperCase();
+                headerRow.innerHTML += `<th class="p-2 bg-gray-100 text-center">${abbr}</th>`;
+            });
+            matrixTable.appendChild(headerRow);
+
+            strategies.forEach(s1 => {
+                const row = document.createElement('tr');
+                const abbr = s1.id.split('_').map(w => w[0]).join('').toUpperCase();
+                row.innerHTML = `<td class="p-2 bg-gray-50 font-semibold">${abbr}</td>`;
+                
+                strategies.forEach(s2 => {
+                    const avgScore = scoreMatrix[s1.id][s2.id] / numTrials;
+                    const maxScore = baseIterations * PAYOFF.T;
+                    const intensity = avgScore / maxScore;
+                    const bgColor = `rgba(255, ${Math.floor(255 * (1 - intensity))}, ${Math.floor(255 * (1 - intensity))}, ${0.3 + intensity * 0.7})`;
+                    row.innerHTML += `<td class="p-2 text-center" style="background-color: ${bgColor}">${Math.round(avgScore)}</td>`;
+                });
+                
+                matrixTable.appendChild(row);
+            });
+        }
+
+        function runSimulation() {
+            const progressContainer = document.getElementById('progress-container');
+            const resultsContainer = document.getElementById('results-container');
+            const historyContainer = document.getElementById('history-container');
+            const tournamentContainer = document.getElementById('tournament-container');
+            const progressLabel = document.getElementById('progress-label');
+            const trialProgressContainer = document.getElementById('trial-progress-container');
+            
+            progressContainer.classList.remove('hidden');
+            resultsContainer.classList.add('hidden');
+            historyContainer.classList.add('hidden');
+            tournamentContainer.classList.add('hidden');
+            trialProgressContainer.classList.add('hidden');
+            
+            progressLabel.textContent = 'Progress';
+            
+            // Reset OmegaTFT state for new simulation
+            omegaTftState = { deadlockCounter: 0, randomnessCounter: 0 };
+            
+            const actualIterations = getRandomIterations();
+
+            let history = [];
+            let p1Score = 0, p2Score = 0, p1CoopCount = 0, p2CoopCount = 0;
+            let bothCoop = 0, bothDefect = 0, p1CoopP2Defect = 0, p1DefectP2Coop = 0;
+
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+
+            function runTurn(turn) {
+                if (turn >= actualIterations) {
+                    showResults(p1Score, p2Score, p1CoopCount, p2CoopCount, bothCoop, bothDefect, p1CoopP2Defect, p1DefectP2Coop, history, actualIterations);
+                    progressContainer.classList.add('hidden');
+                    return;
+                }
+
+                const p1History = history.map(h => ({ opponent: h.p2, self: h.p1 }));
+                const p2History = history.map(h => ({ opponent: h.p1, self: h.p2 }));
+                const lastP1Payoff = history.length > 0 ? history[history.length - 1].p1Score : null;
+                const lastP2Payoff = history.length > 0 ? history[history.length - 1].p2Score : null;
+                
+                let p1Move = strategyFunctions[selectedP1](p1History, lastP1Payoff);
+                let p2Move = strategyFunctions[selectedP2](p2History, lastP2Payoff);
+
+                p1Move = applyNoise(p1Move, noiseProb);
+                p2Move = applyNoise(p2Move, noiseProb);
+
+                const payoffKey = `${p1Move}_${p2Move}`;
+                const payoff = payoffs[payoffKey];
+
+                p1Score += payoff.p1;
+                p2Score += payoff.p2;
+                if (p1Move === 'cooperate') p1CoopCount++;
+                if (p2Move === 'cooperate') p2CoopCount++;
+                if (p1Move === 'cooperate' && p2Move === 'cooperate') bothCoop++;
+                if (p1Move === 'defect' && p2Move === 'defect') bothDefect++;
+                if (p1Move === 'cooperate' && p2Move === 'defect') p1CoopP2Defect++;
+                if (p1Move === 'defect' && p2Move === 'cooperate') p1DefectP2Coop++;
+
+                history.push({ turn: turn + 1, p1: p1Move, p2: p2Move, p1Score: payoff.p1, p2Score: payoff.p2 });
+
+                const progress = ((turn + 1) / actualIterations) * 100;
+                progressBar.style.width = `${progress}%`;
+                progressText.textContent = `${turn + 1} / ${actualIterations} iterations`;
+
+                runTurn(turn + 1);
+            }
+
+            runTurn(0);
+        }
+
+        function showResults(p1Score, p2Score, p1CoopCount, p2CoopCount, bothCoop, bothDefect, p1CoopP2Defect, p1DefectP2Coop, history, actualIterations) {
+            const resultsContainer = document.getElementById('results-container');
+            const historyContainer = document.getElementById('history-container');
+            
+            resultsContainer.classList.remove('hidden');
+            historyContainer.classList.remove('hidden');
+
+            document.getElementById('player1-score').textContent = p1Score;
+            document.getElementById('player2-score').textContent = p2Score;
+            document.getElementById('player1-average').textContent = `Average: ${(p1Score / actualIterations).toFixed(2)} per turn`;
+            document.getElementById('player2-average').textContent = `Average: ${(p2Score / actualIterations).toFixed(2)} per turn`;
+
+            const p1CoopRate = (p1CoopCount / actualIterations) * 100;
+            const p2CoopRate = (p2CoopCount / actualIterations) * 100;
+            document.getElementById('player1-coop').textContent = `${p1CoopRate.toFixed(1)}%`;
+            document.getElementById('player2-coop').textContent = `${p2CoopRate.toFixed(1)}%`;
+            document.getElementById('player1-coop-bar').style.width = `${p1CoopRate}%`;
+            document.getElementById('player2-coop-bar').style.width = `${p2CoopRate}%`;
+
+            document.getElementById('both-coop').textContent = bothCoop;
+            document.getElementById('both-defect').textContent = bothDefect;
+            document.getElementById('p1-coop-p2-defect').textContent = p1CoopP2Defect;
+            document.getElementById('p1-defect-p2-coop').textContent = p1DefectP2Coop;
+
+            const winnerContainer = document.getElementById('winner-container');
+            const winnerText = document.getElementById('winner-text');
+            winnerContainer.classList.remove('hidden');
+            if (p1Score > p2Score) {
+                winnerContainer.className = 'text-center p-4 rounded-lg bg-blue-100';
+                winnerText.textContent = `🏆 Player 1 Wins! (${actualIterations} turns)`;
+                winnerText.className = 'text-xl font-bold text-blue-700';
+            } else if (p2Score > p1Score) {
+                winnerContainer.className = 'text-center p-4 rounded-lg bg-red-100';
+                winnerText.textContent = `🏆 Player 2 Wins! (${actualIterations} turns)`;
+                winnerText.className = 'text-xl font-bold text-red-700';
+            } else {
+                winnerContainer.className = 'text-center p-4 rounded-lg bg-gray-100';
+                winnerText.textContent = `🤝 It's a Tie! (${actualIterations} turns)`;
+                winnerText.className = 'text-xl font-bold text-gray-700';
+            }
+
+            const historyBody = document.getElementById('history-body');
+            historyBody.innerHTML = '';
+            const recentHistory = history.slice(-20);
+            recentHistory.forEach(turn => {
+                const row = document.createElement('tr');
+                row.className = 'border-b hover:bg-gray-50';
+                row.innerHTML = `
+                    <td class="p-2 font-medium">${turn.turn}</td>
+                    <td class="p-2">
+                        <span class="px-2 py-1 rounded text-xs font-semibold ${turn.p1 === 'cooperate' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                            ${turn.p1 === 'cooperate' ? 'C' : 'D'}
+                        </span>
+                    </td>
+                    <td class="p-2">
+                        <span class="px-2 py-1 rounded text-xs font-semibold ${turn.p2 === 'cooperate' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}">
+                            ${turn.p2 === 'cooperate' ? 'C' : 'D'}
+                        </span>
+                    </td>
+                    <td class="p-2 font-medium ${turn.p1Score > 0 ? 'text-green-600' : 'text-gray-600'}">${turn.p1Score}</td>
+                    <td class="p-2 font-medium ${turn.p2Score > 0 ? 'text-green-600' : 'text-gray-600'}">${turn.p2Score}</td>
+                `;
+                historyBody.appendChild(row);
+            });
+        }
+
+        function reset() {
+            document.getElementById('results-container').classList.add('hidden');
+            document.getElementById('history-container').classList.add('hidden');
+            document.getElementById('progress-container').classList.add('hidden');
+            document.getElementById('tournament-container').classList.add('hidden');
+            document.getElementById('progress-bar').style.width = '0%';
+            document.getElementById('trial-progress-bar').style.width = '0%';
+        }
+
+        function openAboutModal() {
+            document.getElementById('about-modal').classList.add('active');
+        }
+
+        function closeAboutModal() {
+            document.getElementById('about-modal').classList.remove('active');
+        }
+
+        document.getElementById('iterations').addEventListener('input', (e) => {
+            baseIterations = parseInt(e.target.value);
+            document.getElementById('iteration-value').textContent = baseIterations;
+        });
+
+        document.getElementById('deviation').addEventListener('input', (e) => {
+            iterationDeviation = parseInt(e.target.value) / 100;
+            document.getElementById('deviation-value').textContent = `${e.target.value}%`;
+        });
+
+        document.getElementById('trials').addEventListener('input', (e) => {
+            trials = parseInt(e.target.value);
+            document.getElementById('trials-value').textContent = trials;
+        });
+
+        document.getElementById('generous').addEventListener('input', (e) => {
+            generousProb = parseInt(e.target.value) / 100;
+            document.getElementById('generous-value').textContent = `${e.target.value}%`;
+        });
+
+        document.getElementById('random-prob').addEventListener('input', (e) => {
+            randomCoopProb = parseInt(e.target.value) / 100;
+            document.getElementById('random-prob-value').textContent = `${e.target.value}%`;
+        });
+
+        document.getElementById('imperfect-tft').addEventListener('input', (e) => {
+            imperfectTftProb = parseInt(e.target.value) / 100;
+            document.getElementById('imperfect-tft-value').textContent = `${e.target.value}%`;
+        });
+
+        document.getElementById('reactive-p').addEventListener('input', (e) => {
+            reactiveP = parseInt(e.target.value) / 100;
+            document.getElementById('reactive-p-value').textContent = `${e.target.value}%`;
+        });
+
+        document.getElementById('reactive-q').addEventListener('input', (e) => {
+            reactiveQ = parseInt(e.target.value) / 100;
+            document.getElementById('reactive-q-value').textContent = `${e.target.value}%`;
+        });
+
+        document.getElementById('noise').addEventListener('input', (e) => {
+            noiseProb = parseFloat(e.target.value) / 100;
+            document.getElementById('noise-value').textContent = `${e.target.value}%`;
+        });
+
+        document.getElementById('gradual-apologies').addEventListener('input', (e) => {
+            gradualApologies = parseInt(e.target.value);
+            document.getElementById('gradual-apologies-value').textContent = gradualApologies;
+        });
+
+        document.getElementById('fully-gradual-apologies-max').addEventListener('input', (e) => {
+            fullyGradualApologiesMax = parseInt(e.target.value);
+            document.getElementById('fully-gradual-apologies-max-value').textContent = fullyGradualApologiesMax;
+        });
+
+        document.getElementById('run-btn').addEventListener('click', () => { reset(); runSimulation(); });
+        document.getElementById('tournament-btn').addEventListener('click', () => { reset(); runTournament(); });
+        document.getElementById('reset-btn').addEventListener('click', reset);
+        document.getElementById('about-btn').addEventListener('click', openAboutModal);
+        document.getElementById('close-modal-btn').addEventListener('click', closeAboutModal);
+        document.getElementById('about-modal').addEventListener('click', (e) => {
+            if (e.target.id === 'about-modal') closeAboutModal();
+        });
+
+        initializeStrategySelectors();
+    </script>
+</body>
+</html>
+
