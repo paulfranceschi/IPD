@@ -20,8 +20,10 @@ MIT License.
 
 ## Test results
 ============================================================
+
 TOURNAMENT RESULTS (total score across all turns & repetitions)
 ============================================================
+
  1. Evolved ANN 5 Noise 05         : 82231.00 points
  2. 4-Duality Optimizer 1B         : 70841.00 points
  3. ShortMem                       : 70603.00 points
