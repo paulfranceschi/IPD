@@ -6,7 +6,7 @@ Python code to run experimental tests for the Iterated Prisoner's Dilemma (IPD) 
 https://github.com/Axelrod-Python/Axelrod
 
 Designed for my academic research on this topic and reproducibility.
-The strategy 4-Duality Optimizer 1 is tested, based on my paper:
+The strategy 4-Duality Optimizer 1 is tested, based on the analysis of the IPD from my paper:
 
 Cadre conceptuel pour la résolution d’une classe de conflits de valeurs.
 https://philpapers.org/rec/FRACCP
