@@ -12,7 +12,7 @@ https://philpapers.org/rec/FRACCP
 
 ## Usage
 
-execute main.py code
+execute main-test.py code
 
 ## License
 
