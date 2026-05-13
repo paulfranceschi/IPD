@@ -22,6 +22,7 @@ MIT License.
 ============================================================
 
 TOURNAMENT RESULTS (total score across all turns & repetitions)
+
 ============================================================
 
  1. Evolved ANN 5 Noise 05         : 82231.00 points
