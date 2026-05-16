@@ -1,6 +1,6 @@
 # IPD
 
-# Iterated Prisoner's Dilemma Tournament
+# Iterated Prisoner's Dilemma Experiment
 
 Python code to run experimental tests for the Iterated Prisoner's Dilemma (IPD) based on the Axelrod repository:
 https://github.com/Axelrod-Python/Axelrod
